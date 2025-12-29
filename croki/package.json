@@ -1,0 +1,37 @@
+{
+  "name": "croki",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "dev:partykit": "partykit dev --port 1999",
+    "dev:all": "npm run dev & npm run dev:partykit",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "deploy:partykit": "partykit deploy",
+    "generate-icons": "node scripts/generate-icons.mjs"
+  },
+  "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
+    "next": "16.1.0",
+    "partykit": "^0.0.115",
+    "partysocket": "^1.1.10",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "tldraw": "^4.2.1",
+    "y-partykit": "^0.0.33",
+    "yjs": "^13.6.28"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.0",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
