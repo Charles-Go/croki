@@ -4,7 +4,11 @@
       "WebSearch",
       "Bash(npm run build:*)",
       "Bash(npm run deploy:partykit:*)",
-      "Bash(npx vercel --prod --yes)"
+      "Bash(npx vercel --prod --yes)",
+      "Bash(npm run lint)",
+      "Bash(cd /Users/cgo/workspace/croki/croki && npx vercel:*)",
+      "Bash(npx vercel --prod)",
+      "Bash(git add:*)"
     ]
   }
 }

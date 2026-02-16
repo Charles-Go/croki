@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
 import type { GameState, GameMessage } from './gameState';
 
@@ -9,23 +9,19 @@ const PARTYKIT_HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST || 'localhost:1999';
 export function useGame(roomId: string, playerName: string) {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [connected, setConnected] = useState(false);
-  const hasJoined = useRef(false);
 
   const socket = usePartySocket({
     host: PARTYKIT_HOST,
     room: roomId,
     onOpen() {
       setConnected(true);
-      // Join the game
-      if (!hasJoined.current) {
-        hasJoined.current = true;
-        socket.send(
-          JSON.stringify({
-            type: 'join',
-            payload: { playerName },
-          })
-        );
-      }
+      // Always send join on (re)connect — server skips if player already exists
+      socket.send(
+        JSON.stringify({
+          type: 'join',
+          payload: { playerName },
+        })
+      );
     },
     onClose() {
       setConnected(false);

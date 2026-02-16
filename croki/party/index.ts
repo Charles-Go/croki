@@ -83,6 +83,7 @@ function isGuessCorrect(guess: string, word: string): boolean {
 export default class CrokiServer implements Party.Server {
   gameState: GameState;
   usedWords: string[] = [];
+  disconnectTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(readonly room: Party.Room) {
     this.gameState = {
@@ -106,45 +107,72 @@ export default class CrokiServer implements Party.Server {
   }
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
-    // Send current game state to new connection
+    // Cancel pending disconnect timer if player is reconnecting
+    const pendingTimer = this.disconnectTimers.get(conn.id);
+    if (pendingTimer) {
+      clearTimeout(pendingTimer);
+      this.disconnectTimers.delete(conn.id);
+    }
+
+    // Send current game state — hide word from guesser
+    const shouldHideWord =
+      (this.gameState.phase === 'drawing' ||
+        this.gameState.phase === 'revealing') &&
+      conn.id === this.gameState.currentGuesserId;
+
+    const stateForClient = shouldHideWord
+      ? { ...this.gameState, currentWord: null }
+      : this.gameState;
+
     conn.send(
       JSON.stringify({
         type: 'sync_state',
-        payload: this.gameState,
+        payload: stateForClient,
       })
     );
   }
 
   onClose(conn: Party.Connection) {
-    // Remove player from game
     const playerId = conn.id;
+    const playerExists = this.gameState.players.some((p) => p.id === playerId);
+    if (!playerExists) return;
+
+    // Start a grace period — only remove player if they don't reconnect within 5 min
+    const timer = setTimeout(() => {
+      this.disconnectTimers.delete(playerId);
+      this.removePlayer(playerId);
+    }, 5 * 60_000);
+
+    this.disconnectTimers.set(playerId, timer);
+  }
+
+  removePlayer(playerId: string) {
     const playerIndex = this.gameState.players.findIndex(
       (p) => p.id === playerId
     );
+    if (playerIndex === -1) return;
 
-    if (playerIndex !== -1) {
-      const wasHost = this.gameState.players[playerIndex].isHost;
-      this.gameState.players.splice(playerIndex, 1);
+    const wasHost = this.gameState.players[playerIndex].isHost;
+    this.gameState.players.splice(playerIndex, 1);
 
-      // Assign new host if needed
-      if (wasHost && this.gameState.players.length > 0) {
-        this.gameState.players[0].isHost = true;
-      }
-
-      // If we're in the middle of a game, handle player leaving
-      if (this.gameState.phase !== 'waiting') {
-        // If guesser left, skip to next round
-        if (playerId === this.gameState.currentGuesserId) {
-          this.startNextRound();
-        }
-        // Remove their submission if any
-        this.gameState.submissions = this.gameState.submissions.filter(
-          (s) => s.playerId !== playerId
-        );
-      }
-
-      this.broadcastState();
+    // Assign new host if needed
+    if (wasHost && this.gameState.players.length > 0) {
+      this.gameState.players[0].isHost = true;
     }
+
+    // If we're in the middle of a game, handle player leaving
+    if (this.gameState.phase !== 'waiting') {
+      // If guesser left, skip to next round
+      if (playerId === this.gameState.currentGuesserId) {
+        this.startNextRound();
+      }
+      // Remove their submission if any
+      this.gameState.submissions = this.gameState.submissions.filter(
+        (s) => s.playerId !== playerId
+      );
+    }
+
+    this.broadcastState();
   }
 
   onMessage(message: string, sender: Party.Connection) {

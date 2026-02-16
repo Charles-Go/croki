@@ -10,6 +10,7 @@ import { GuesserView } from '@/components/GuesserView';
 import { ScoreBoard } from '@/components/ScoreBoard';
 import { RoundEnd } from '@/components/RoundEnd';
 import { GameOver } from '@/components/GameOver';
+import { InitialConnectionScreen, ReconnectOverlay } from '@/components/ReconnectOverlay';
 
 interface PageProps {
   params: Promise<{ roomId: string }>;
@@ -41,19 +42,14 @@ export default function GameRoom({ params }: PageProps) {
     nextRound,
   } = useGame(roomId, playerName);
 
-  if (!connected || !gameState) {
-    return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Connexion...</p>
-        </div>
-      </div>
-    );
+  if (!gameState) {
+    return <InitialConnectionScreen />;
   }
 
   return (
-    <main className="h-dvh flex flex-col overflow-hidden">
+    <>
+      {!connected && <ReconnectOverlay />}
+      <main className="h-dvh flex flex-col overflow-hidden">
       {/* Header */}
       <header className="flex-shrink-0 bg-white dark:bg-gray-950 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
@@ -176,6 +172,7 @@ export default function GameRoom({ params }: PageProps) {
         </div>
       )}
     </main>
+    </>
   );
 }
 
